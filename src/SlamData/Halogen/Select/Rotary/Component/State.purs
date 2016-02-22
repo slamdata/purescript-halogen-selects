@@ -6,6 +6,7 @@ import Data.Maybe as M
 import Data.Lens (LensP(), lens)
 import Data.ExistsR as Er
 import Data.NonEmpty (NonEmpty())
+import Data.Circular as Cr
 
 import DOM.HTML.Types as Ht
 
@@ -33,8 +34,8 @@ type State r =
   , element :: M.Maybe Ht.HTMLElement
   , position :: Number
   , key :: M.Maybe String
-  , items :: NonEmpty Array (Option r)
-  , displayedItems :: NonEmpty Array (Option r)
+  , items :: Cr.Circular Array (Option r)
+  , displayedItems :: Array (Option r)
   , constStyles :: CSS
   }
 
@@ -103,7 +104,7 @@ initialState items =
   , element: M.Nothing
   , position: zero
   , key: M.Nothing
-  , items: items
-  , displayedItems: items
+  , items: Cr.Circular items
+  , displayedItems: [ ]
   , constStyles: pure unit
   }

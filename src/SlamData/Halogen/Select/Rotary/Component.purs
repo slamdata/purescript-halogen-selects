@@ -1,6 +1,6 @@
 module SlamData.Halogen.Select.Rotary.Component
   (
-    comp
+    rotarySelect
   , module SlamData.Halogen.Select.Rotary.Component.State
   , module SlamData.Halogen.Select.Rotary.Component.Query
   ) where
@@ -16,6 +16,7 @@ import Control.Coroutine.Aff (produce)
 import Control.Coroutine.Stalling as SCR
 
 import Data.Array as Arr
+import Data.Circular as Cr
 import Data.Either as E
 import Data.Date (Now())
 import Data.Functor (($>))
@@ -25,8 +26,6 @@ import Data.Maybe as M
 import Data.Foldable as F
 import Data.StrMap as Sm
 import Data.Int as Int
-import Data.NonEmpty as Ne
-import Data.ExistsR as Er
 
 import CSS.Display (display, inlineBlock)
 import CSS.Display (position, relative)
@@ -59,8 +58,6 @@ import DOM.Event.EventTypes as Etp
 import SlamData.Halogen.Select.Utils.Random (genKey)
 import SlamData.Halogen.Select.Utils.DOM
   (getComputedStyle, getClientRects, getScreen)
-import SlamData.Halogen.Select.Utils.Array (repeat, shift)
-import SlamData.Halogen.Select.Utils.NonEmpty (liftNonEmpty)
 
 import SlamData.Halogen.Select.Rotary.Component.State
 import SlamData.Halogen.Select.Rotary.Component.Query
@@ -95,14 +92,13 @@ type RotarySelectorConfig r =
     itemRender :: M.Maybe (Option r -> ComponentHTML (Query r))
   , itemWidth :: Number
   , visibleItemCount :: M.Maybe Number
-  , items :: Ne.NonEmpty Array (Option r)
   }
 
-comp
+rotarySelect
   :: forall r e
    . RotarySelectorConfig r
   -> Component (State r) (Query r) (AffSel e)
-comp cfg = component (render cfg) (eval cfg)
+rotarySelect cfg = component (render cfg) (eval cfg)
 
 render
   :: forall r
@@ -125,7 +121,7 @@ render cfg state =
 
   content :: Array (ComponentHTML (Query r))
   content =
-    Ne.oneOf $ map itemRender state.displayedItems
+    map itemRender state.displayedItems
 
   itemRender :: Option r -> ComponentHTML (Query r)
   itemRender s =
@@ -184,16 +180,16 @@ getElementOffset =
 setDisplayedItems
   :: forall r e
    . RotarySelectorConfig r
-  -> Ne.NonEmpty Array (Option r)
+  -> Cr.Circular Array (Option r)
   -> RotarySelectorDSL r e Unit
-setDisplayedItems cfg arr = do
+setDisplayedItems cfg circ = do
   screenWidth <- liftEff $ getScreen <#> _.width
   let
     iwidth = Int.floor cfg.itemWidth
-    ilen = Arr.length $ Ne.oneOf arr
+    ilen = Cr.lengthCircular circ
     itemsOnScreen = screenWidth / iwidth + one
     repeats = draggableScreens * itemsOnScreen / ilen
-  modify $ _displayedItems .~ liftNonEmpty (repeat repeats) arr
+  modify $ _displayedItems .~ Cr.samples repeats circ
 
 
 eval
@@ -244,7 +240,7 @@ eval cfg (Init el next) = do
     (draggedSelector key) ? do
       let
         iwidth = Int.floor cfg.itemWidth
-        ilen = Arr.length $ Ne.oneOf state.items
+        ilen = Cr.lengthCircular state.items
         itemsOnScreen = screenWidth / iwidth + one
         draggedWidth =
           cfg.itemWidth * Int.toNumber (itemsOnScreen * draggableScreens)
@@ -302,7 +298,7 @@ eval cfg (Animated next) = do
   modify $ _position .~ curX
   let
     items =
-      liftNonEmpty (shift (-1 * (Int.floor (curX / cfg.itemWidth)))) state.items
+      Cr.shift (-1 * (Int.floor (curX / cfg.itemWidth))) state.items
   setDisplayedItems cfg items
   modify $ _items .~ items
   modify $ _position .~ zero
@@ -311,10 +307,10 @@ eval cfg (Animated next) = do
     $ EventSource
     $ SCR.producerToStallingProducer
     $ produce \emit -> do
-      emit $ E.Left $ action $ Selected $ Ne.head items
+      emit $ E.Left $ action $ Selected $ Cr.pointed items
       emit $ E.Right unit
   pure next
 eval cfg (GetSelected continue) = do
   state <- get
-  pure $ continue $ Ne.head state.items
+  pure $ continue $ Cr.pointed state.items
 eval cfg (Selected _ next) = pure next
