@@ -1,0 +1,35 @@
+{
+  "name": "purescript-halogen-selects",
+  "homepage": "https://github.com/slamdata/purescript-halogen-selects",
+  "authors": [
+    "Maxim Zimaliev <zimaliev@gmail.com>"
+  ],
+  "description": "Collection of purescript-halogen select components",
+  "keywords": [
+    "purescript",
+    "halogen",
+    "select"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/slamdata/purescript-halogen-selects"
+  },
+  "license": "Apache 2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-css": "~0.6.0",
+    "purescript-halogen-css": "~0.2.2",
+    "purescript-halogen": "~0.5.16",
+    "purescript-either": "~0.2.3",
+    "purescript-profunctor-lenses": "~0.4.2",
+    "purescript-random": "~0.2.3"
+  },
+  "resolutions": {
+    "purescript-css": "~0.6.0"
+  }
+}

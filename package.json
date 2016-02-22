@@ -1,0 +1,10 @@
+{
+    "private": true,
+    "scripts": {
+        "build": "pulp build"
+    },
+    "devDependencies": {
+        "pulp": "^8.0.0",
+        "purescript": "^0.7.6"
+    }
+}
