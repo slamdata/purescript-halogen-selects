@@ -1,4 +1,4 @@
-## Module Halogen.Components.Select.Utils.Random
+## Module SlamData.Halogen.Select.Utils.Random
 
 #### `randomString`
 
@@ -9,7 +9,7 @@ randomString :: forall e g. (FunctorEff (random :: RANDOM | e) g) => g String
 #### `toString`
 
 ``` purescript
-toString :: forall e. Int -> Number -> String
+toString :: Int -> Number -> String
 ```
 
 #### `mkString`

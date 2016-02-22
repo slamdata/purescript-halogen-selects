@@ -1,4 +1,4 @@
-## Module Halogen.Components.Select.Utils.DOM
+## Module SlamData.Halogen.Select.Utils.DOM
 
 #### `Screen`
 

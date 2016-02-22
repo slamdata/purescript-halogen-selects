@@ -1,4 +1,4 @@
-## Module Halogen.Components.Select.Rotary.Component.State
+## Module SlamData.Halogen.Select.Rotary.Component.State
 
 #### `VisualState`
 
@@ -22,16 +22,10 @@ newtype Option r
 runOption :: forall r. Option r -> { label :: String | r }
 ```
 
-#### `OptionR`
-
-``` purescript
-type OptionR = ExistsR Option
-```
-
 #### `State`
 
 ``` purescript
-type State = { visualState :: VisualState, styles :: CSS, element :: Maybe HTMLElement, position :: Number, key :: Maybe String, items :: NonEmpty Array OptionR, displayedItems :: NonEmpty Array OptionR, constStyles :: CSS }
+type State r = { visualState :: VisualState, styles :: CSS, element :: Maybe HTMLElement, position :: Number, key :: Maybe String, items :: Circular Array (Option r), displayedItems :: Array (Option r), constStyles :: CSS }
 ```
 
 #### `_visualState`
@@ -85,19 +79,19 @@ _constStyles :: forall a r. LensP { constStyles :: a | r } a
 #### `isDragged`
 
 ``` purescript
-isDragged :: State -> Boolean
+isDragged :: forall r. State r -> Boolean
 ```
 
 #### `updateStyles`
 
 ``` purescript
-updateStyles :: State -> State
+updateStyles :: forall r. State r -> State r
 ```
 
 #### `initialState`
 
 ``` purescript
-initialState :: forall r. NonEmpty Array (Option r) -> State
+initialState :: forall r. NonEmpty Array (Option r) -> State r
 ```
 
 
