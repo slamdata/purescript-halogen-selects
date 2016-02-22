@@ -1,4 +1,4 @@
-// module Halogen.Components.Select.Utils.DOM
+// module SlamData.Halogen.Select.Utils.DOM
 
 exports.getScreen = function() {
     var ws = window.screen;

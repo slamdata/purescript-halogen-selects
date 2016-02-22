@@ -1,4 +1,4 @@
-module Halogen.Components.Select.Utils.Array where
+module SlamData.Halogen.Select.Utils.Array where
 
 import Prelude
 

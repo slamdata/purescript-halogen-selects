@@ -1,4 +1,4 @@
-module Halogen.Components.Select.Utils.Random where
+module SlamData.Halogen.Select.Utils.Random where
 
 import Prelude
 

@@ -1,4 +1,4 @@
-module Halogen.Components.Select.Utils.NonEmpty where
+module SlamData.Halogen.Select.Utils.NonEmpty where
 
 import Prelude
 

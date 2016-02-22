@@ -1,9 +1,8 @@
-module Halogen.Components.Select.Rotary.Component
+module SlamData.Halogen.Select.Rotary.Component
   (
     comp
-  , rotarySelect
-  , module Halogen.Components.Select.Rotary.Component.State
-  , module Halogen.Components.Select.Rotary.Component.Query
+  , module SlamData.Halogen.Select.Rotary.Component.State
+  , module SlamData.Halogen.Select.Rotary.Component.Query
   ) where
 
 import Prelude
@@ -57,21 +56,21 @@ import DOM.HTML.Types as Ht
 import DOM.Event.EventTarget as Etr
 import DOM.Event.EventTypes as Etp
 
-import Halogen.Components.Select.Utils.Random (genKey)
-import Halogen.Components.Select.Utils.DOM
+import SlamData.Halogen.Select.Utils.Random (genKey)
+import SlamData.Halogen.Select.Utils.DOM
   (getComputedStyle, getClientRects, getScreen)
-import Halogen.Components.Select.Utils.Array (repeat, shift)
-import Halogen.Components.Select.Utils.NonEmpty (liftNonEmpty)
+import SlamData.Halogen.Select.Utils.Array (repeat, shift)
+import SlamData.Halogen.Select.Utils.NonEmpty (liftNonEmpty)
 
-import Halogen.Components.Select.Rotary.Component.State
-import Halogen.Components.Select.Rotary.Component.Query
+import SlamData.Halogen.Select.Rotary.Component.State
+import SlamData.Halogen.Select.Rotary.Component.Query
 
 type AffSel e =
   Aff ( dom :: DOM
       , random :: RANDOM
       , now :: Now
       , avar :: AVAR |e)
-type RotarySelectorDSL e = ComponentDSL State Query (AffSel e)
+type RotarySelectorDSL r e = ComponentDSL (State r) (Query r) (AffSel e)
 
 wrapperClass :: ClassName
 wrapperClass = className "rotary-selector-wrapper"
@@ -93,7 +92,7 @@ draggableScreens = 3
 
 type RotarySelectorConfig r =
   {
-    itemRender :: M.Maybe (Option r -> ComponentHTML Query)
+    itemRender :: M.Maybe (Option r -> ComponentHTML (Query r))
   , itemWidth :: Number
   , visibleItemCount :: M.Maybe Number
   , items :: Ne.NonEmpty Array (Option r)
@@ -102,42 +101,15 @@ type RotarySelectorConfig r =
 comp
   :: forall r e
    . RotarySelectorConfig r
-  -> { component :: Component State Query (AffSel e)
-     , unpack :: OptionR -> Option r
-     }
-comp cfg =
-  { component: component (render cfg unpack) (eval cfg)
-  , unpack
-  }
-  where
-  unpack :: OptionR -> Option r
-  unpack = Unsafe.Coerce.unsafeCoerce
-
-rotarySelect
-  :: forall r p e
-   . RotarySelectorConfig r
-  -> Array (Option r)
-  -> p
-  -> { slot :: SlotConstructor State Query (AffSel e) p
-     , unpack :: OptionR -> Option r
-     }
-rotarySelect cfg items p =
-  { slot: SlotConstructor p \_ ->
-      { component: rComp.component
-      , initialState: initialState cfg.items
-      }
-  , unpack: rComp.unpack
-  }
-  where
-  rComp = comp cfg
+  -> Component (State r) (Query r) (AffSel e)
+comp cfg = component (render cfg) (eval cfg)
 
 render
   :: forall r
    . RotarySelectorConfig r
-  -> (OptionR -> Option r)
-  -> State
-  -> ComponentHTML Query
-render cfg unpack state =
+  -> (State r)
+  -> ComponentHTML (Query r)
+render cfg state =
   H.div wrapperAttrs
     [ H.div [ E.onMouseDown (\evt -> E.preventDefault
                                        $> (action $ StartDragging evt.clientX))
@@ -151,19 +123,19 @@ render cfg unpack state =
     [ P.classes [ wrapperClass ] ]
     <> F.foldMap (dataRotaryKey >>> Arr.singleton) state.key
 
-  content :: Array (ComponentHTML Query)
+  content :: Array (ComponentHTML (Query r))
   content =
     Ne.oneOf $ map itemRender state.displayedItems
 
-  itemRender :: OptionR -> ComponentHTML Query
+  itemRender :: Option r -> ComponentHTML (Query r)
   itemRender s =
     H.div [ P.classes [ itemClass ] ]
       $ pure
       $ case cfg.itemRender of
-        M.Just fn -> fn $ unpack s
-        M.Nothing -> Er.runExistsR (runOption >>> _.label >>> H.text) s
+        M.Just fn -> fn s
+        M.Nothing -> (runOption >>> _.label >>> H.text) s
 
-  stls :: Array (ComponentHTML Query)
+  stls :: Array (ComponentHTML (Query r))
   stls =
     F.foldMap (Arr.singleton <<< CSS.stylesheet <<< mkStylesheet) state.key
 
@@ -188,8 +160,8 @@ itemSelector k =
   ** (fromString ".rotary-selector-item")
 
 getCurrentX
-  :: forall e
-   . RotarySelectorDSL e Number
+  :: forall e r
+   . RotarySelectorDSL r e Number
 getCurrentX =
   M.fromMaybe zero <$> Mt.runMaybeT do
     el <- Mt.MaybeT $ gets _.element
@@ -200,8 +172,8 @@ getCurrentX =
       <#> Global.readFloat
 
 getElementOffset
-  :: forall e
-   . RotarySelectorDSL e Number
+  :: forall e r
+   . RotarySelectorDSL r e Number
 getElementOffset =
   M.fromMaybe zero <$> Mt.runMaybeT do
     el <- Mt.MaybeT $ gets _.element
@@ -212,8 +184,8 @@ getElementOffset =
 setDisplayedItems
   :: forall r e
    . RotarySelectorConfig r
-  -> Ne.NonEmpty Array OptionR
-  -> RotarySelectorDSL e Unit
+  -> Ne.NonEmpty Array (Option r)
+  -> RotarySelectorDSL r e Unit
 setDisplayedItems cfg arr = do
   screenWidth <- liftEff $ getScreen <#> _.width
   let
@@ -227,7 +199,7 @@ setDisplayedItems cfg arr = do
 eval
   :: forall r e
    . RotarySelectorConfig r
-  -> Natural Query (RotarySelectorDSL e)
+  -> Natural (Query r) (RotarySelectorDSL r e)
 eval cfg (Init el next) = do
   modify $ _element ?~ el
   key <- genKey

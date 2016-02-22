@@ -1,4 +1,4 @@
-module Halogen.Components.Select.Rotary.Component.State where
+module SlamData.Halogen.Select.Rotary.Component.State where
 
 import Prelude
 
@@ -26,17 +26,15 @@ newtype Option r = Option {label :: String |r}
 runOption :: forall r. Option r -> {label :: String|r}
 runOption (Option r) = r
 
-type OptionR = Er.ExistsR Option
-
-type State =
+type State r =
   {
     visualState :: VisualState
   , styles :: CSS
   , element :: M.Maybe Ht.HTMLElement
   , position :: Number
   , key :: M.Maybe String
-  , items :: NonEmpty Array OptionR
-  , displayedItems :: NonEmpty Array OptionR
+  , items :: NonEmpty Array (Option r)
+  , displayedItems :: NonEmpty Array (Option r)
   , constStyles :: CSS
   }
 
@@ -64,12 +62,14 @@ _displayedItems = lens _.displayedItems _{displayedItems = _}
 _constStyles :: forall a r. LensP {constStyles :: a|r} a
 _constStyles = lens _.constStyles _{constStyles = _}
 
-isDragged :: State -> Boolean
+isDragged :: forall r. State r -> Boolean
 isDragged {visualState = Dragging _ } = true
 isDragged _ = false
 
 updateStyles
-  :: State -> State
+  :: forall r
+   . State r
+  -> State r
 updateStyles st@{visualState = Staying, position} =
   st { styles = marginLeft $ px position }
 updateStyles st@{visualState = Dragging startedAt, position} =
@@ -92,7 +92,10 @@ updateStyles st@{visualState = Animating from to, position, key = M.Just key} =
       forwards
 updateStyles s = s
 
-initialState :: forall r. NonEmpty Array (Option r) -> State
+initialState
+  :: forall r
+   . NonEmpty Array (Option r)
+  -> State r
 initialState items =
   {
     visualState: Staying
@@ -100,10 +103,7 @@ initialState items =
   , element: M.Nothing
   , position: zero
   , key: M.Nothing
-  , items: existArr items
-  , displayedItems: existArr items
+  , items: items
+  , displayedItems: items
   , constStyles: pure unit
   }
-  where
-  existArr :: forall rr f. (Functor f) => f (Option rr) -> f OptionR
-  existArr = Unsafe.Coerce.unsafeCoerce
