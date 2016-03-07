@@ -1,6 +1,7 @@
 module SlamData.Halogen.Select.Rotary.Component
   (
     rotarySelect
+  , RotarySelectorConfig()
   , module SlamData.Halogen.Select.Rotary.Component.State
   , module SlamData.Halogen.Select.Rotary.Component.Query
   ) where
@@ -234,18 +235,18 @@ eval cfg (Init el next) = do
     let visibleCount = M.fromMaybe 2.0 cfg.visibleItemCount
     (wrapperSelector key) ? do
       width $ px $ visibleCount * cfg.itemWidth
-      marginLeft $ px (-1.0 * visibleCount * cfg.itemWidth * 0.5)
       overflow hidden
       position relative
     (draggedSelector key) ? do
       let
         iwidth = Int.floor cfg.itemWidth
         ilen = Cr.lengthCircular state.items
-        itemsOnScreen = screenWidth / iwidth + one
+        itemsOnScreen =
+          screenWidth / iwidth + one
         draggedWidth =
           cfg.itemWidth * Int.toNumber (itemsOnScreen * draggableScreens)
         itemsOnLeftSideCount =
-          draggableScreens * (itemsOnScreen / 2 / ilen)
+          draggableScreens * (itemsOnScreen / 2 / ilen + one)
         halfWidth =
           cfg.itemWidth * Int.toNumber (ilen * itemsOnLeftSideCount)
         leftPosition =

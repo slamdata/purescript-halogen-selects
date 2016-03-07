@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Maybe as M
 import Data.Lens (LensP(), lens)
-import Data.ExistsR as Er
 import Data.NonEmpty (NonEmpty())
 import Data.Circular as Cr
 
