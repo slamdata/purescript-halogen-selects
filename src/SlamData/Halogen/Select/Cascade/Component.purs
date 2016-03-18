@@ -13,20 +13,21 @@ import Prelude
 import Control.Monad.Aff (Aff())
 import Control.MonadPlus (guard)
 
+import Data.Foldable as F
 import Data.Functor (($>))
 import Data.Lens (LensP(), lens, (%~))
-import Data.Foldable as F
-import Data.Map as Map
-import Data.Tuple as Tpl
-import Data.Maybe as M
-import Data.Set as Set
 import Data.List as L
+import Data.Map as Map
+import Data.Maybe as M
+import Data.NaturalTransformation (Natural())
+import Data.Set as Set
+import Data.Tuple as Tpl
 
-import Halogen hiding (Prop())
+import Halogen as H
 import Halogen.HTML.Core (className, ClassName())
-import Halogen.HTML.Indexed as H
-import Halogen.HTML.Events.Indexed as E
-import Halogen.HTML.Properties.Indexed as P
+import Halogen.HTML.Events.Indexed as HE
+import Halogen.HTML.Indexed as HH
+import Halogen.HTML.Properties.Indexed as HP
 import Halogen.Themes.Bootstrap3 as B
 
 cascadeFormClass :: ClassName
@@ -104,7 +105,7 @@ data Query v a
   | Remove Int a
   | GetSelected (Array v -> a)
 
-type CascadeSelectDSL v e = ComponentDSL (State v) (Query v) (Aff e)
+type CascadeSelectDSL v e = H.ComponentDSL (State v) (Query v) (Aff e)
 
 type CascadeSelectConfig =
   {
@@ -114,13 +115,13 @@ type CascadeSelectConfig =
 cascadeSelect
   :: forall v e
    . CascadeSelectConfig
-  -> Component (State v) (Query v) (Aff e)
-cascadeSelect cfg = component (render cfg) eval
+  -> H.Component (State v) (Query v) (Aff e)
+cascadeSelect cfg = H.component { render: render cfg, eval }
 
 type RenderAccum v =
   {
     selectable :: Set.Set (Option v)
-  , html :: Array (ComponentHTML (Query v))
+  , html :: Array (H.ComponentHTML (Query v))
   }
 
 initialAccum :: forall v. State v -> RenderAccum v
@@ -135,9 +136,9 @@ render
   :: forall v
    . CascadeSelectConfig
   -> State v
-  -> ComponentHTML (Query v)
+  -> H.ComponentHTML (Query v)
 render cfg state =
-  H.form [ P.classes [ cascadeFormClass ] ]
+  HH.form [ HP.classes [ cascadeFormClass ] ]
     (
       htmlAndSelectable.html
       <> newSelect
@@ -155,27 +156,27 @@ render cfg state =
     }
 
   renderSelect
-    :: Int -> Option v -> Set.Set (Option v) -> Array (ComponentHTML (Query v))
+    :: Int -> Option v -> Set.Set (Option v) -> Array (H.ComponentHTML (Query v))
   renderSelect inx selected choices =
-    [ H.div [ P.classes [ B.inputGroup, cascadeSelectClass ] ]
+    [ HH.div [ HP.classes [ B.inputGroup, cascadeSelectClass ] ]
       [
-        H.select [ P.classes [ B.formControl ]
-                 , E.onValueChange (E.input (Selected inx))
+        HH.select [ HP.classes [ B.formControl ]
+                 , HE.onValueChange (HE.input (Selected inx))
                  ]
         $ F.foldMap (oneOption $ M.Just selected)
           $ L.sort $ Set.toList choices
-      , H.div [ P.classes [ B.inputGroupBtn ] ]
+      , HH.div [ HP.classes [ B.inputGroupBtn ] ]
         [
-          H.button [ E.onClick (E.input_ (Remove inx))
-                   , P.buttonType P.ButtonButton
-                   , P.classes [ B.btn, B.btnDefault ]
+          HH.button [ HE.onClick (HE.input_ (Remove inx))
+                   , HP.buttonType HP.ButtonButton
+                   , HP.classes [ B.btn, B.btnDefault ]
                    ]
-          [ H.i [ P.classes [ B.glyphicon, B.glyphiconRemove ] ] [ ] ]
+          [ HH.i [ HP.classes [ B.glyphicon, B.glyphiconRemove ] ] [ ] ]
         ]
       ]
     ]
 
-  oneOption :: M.Maybe (Option v) -> Option v -> Array (ComponentHTML (Query v))
+  oneOption :: M.Maybe (Option v) -> Option v -> Array (H.ComponentHTML (Query v))
   oneOption mbSelected (Option choice) =
     let
       isSelected =
@@ -185,17 +186,17 @@ render cfg state =
           <#> eq choice.key
           # M.fromMaybe false
     in
-      [ H.option [ P.selected isSelected ]
-        [ H.text $ runSelectKey choice.key ]
+      [ HH.option [ HP.selected isSelected ]
+        [ HH.text $ runSelectKey choice.key ]
       ]
 
-  newSelect :: Array (ComponentHTML (Query v))
+  newSelect :: Array (H.ComponentHTML (Query v))
   newSelect =
     guard (not $ Set.isEmpty htmlAndSelectable.selectable)
-    $> (H.select [ E.onValueChange (E.input (Selected nextInx))
-                 , P.classes [ B.formControl, cascadeNewSelectClass ]
+    $> (HH.select [ HE.onValueChange (HE.input (Selected nextInx))
+                 , HP.classes [ B.formControl, cascadeNewSelectClass ]
                  ]
-        $ [ H.option_ [H.text cfg.inviteMessage ] ]
+        $ [ HH.option_ [HH.text cfg.inviteMessage ] ]
         <> (F.foldMap (oneOption M.Nothing)
               $ L.sort $ Set.toList htmlAndSelectable.selectable))
 
@@ -206,19 +207,19 @@ render cfg state =
 
 eval :: forall v e. Natural (Query v) (CascadeSelectDSL v e)
 eval (Selected inx str next) = do
-  state <- get
+  state <- H.get
   F.for_ (Map.lookup (SelectKey str) state.keyMap) \opt -> do
-    modify (_selected %~
+    H.modify (_selected %~
             Map.fromList
             <<< F.foldMap (\tpl -> guard (tpl # Tpl.snd # eq opt # not) $> tpl)
             <<< Map.toList
             )
-    modify (_selected %~ Map.insert inx opt)
+    H.modify (_selected %~ Map.insert inx opt)
   pure next
 eval (Remove inx next) =
-  modify (_selected %~ Map.delete inx) $> next
+  H.modify (_selected %~ Map.delete inx) $> next
 eval (GetSelected continue) =
-  gets
+  H.gets
     $ _.selected
     >>> Map.values
     >>> F.foldMap (runOption >>> _.value >>> pure)
