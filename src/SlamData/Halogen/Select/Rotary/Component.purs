@@ -2,7 +2,7 @@ module SlamData.Halogen.Select.Rotary.Component
   (
     rotarySelect
   , RotarySelectorConfig()
-  , module SlamData.Halogen.Select.Rotary.Component.State
+  , module S
   , module SlamData.Halogen.Select.Rotary.Component.Query
   ) where
 
@@ -18,18 +18,17 @@ import Control.Coroutine.Stalling as SCR
 
 import Data.Array as Arr
 import Data.Circular as Cr
-import Data.Either as E
 import Data.Date (Now())
+import Data.Either as E
+import Data.Foldable as F
 import Data.Functor (($>))
-import Data.Functor.Eff (liftEff)
+import Data.Int as Int
 import Data.Lens ((.~), (?~))
 import Data.Maybe as M
-import Data.Foldable as F
+import Data.NaturalTransformation (Natural())
 import Data.StrMap as Sm
-import Data.Int as Int
 
-import CSS.Display (display, inlineBlock)
-import CSS.Display (position, relative)
+import CSS.Display (display, inlineBlock, position, relative)
 import CSS.Geometry (width, left, marginLeft)
 import CSS.Overflow (overflow, hidden)
 import CSS.Selector
@@ -39,12 +38,12 @@ import CSS.String (fromString)
 import CSS.Stylesheet (CSS(), (?))
 import CSS.TextAlign (textAlign, center)
 
-import Halogen hiding (Prop())
+import Halogen as H
 import Halogen.HTML.Core (Prop(..), attrName, className, ClassName())
-import Halogen.HTML.Indexed as H
-import Halogen.HTML.Events.Indexed as E
-import Halogen.HTML.Events.Handler as E
-import Halogen.HTML.Properties.Indexed as P
+import Halogen.HTML.Indexed as HH
+import Halogen.HTML.Events.Indexed as HE
+import Halogen.HTML.Events.Handler as HEH
+import Halogen.HTML.Properties.Indexed as HP
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Properties.Indexed (IProp())
 import Halogen.Query.EventSource (EventSource(..))
@@ -60,15 +59,15 @@ import SlamData.Halogen.Select.Utils.Random (genKey)
 import SlamData.Halogen.Select.Utils.DOM
   (getComputedStyle, getClientRects, getScreen)
 
-import SlamData.Halogen.Select.Rotary.Component.State
-import SlamData.Halogen.Select.Rotary.Component.Query
+import SlamData.Halogen.Select.Rotary.Component.State as S
+import SlamData.Halogen.Select.Rotary.Component.Query (Query(..))
 
 type AffSel e =
   Aff ( dom :: DOM
       , random :: RANDOM
       , now :: Now
       , avar :: AVAR |e)
-type RotarySelectorDSL r e = ComponentDSL (State r) (Query r) (AffSel e)
+type RotarySelectorDSL r e = H.ComponentDSL (S.State r) (Query r) (AffSel e)
 
 wrapperClass :: ClassName
 wrapperClass = className "rotary-selector-wrapper"
@@ -90,7 +89,7 @@ draggableScreens = 3
 
 type RotarySelectorConfig r =
   {
-    itemRender :: M.Maybe (Option r -> ComponentHTML (Query r))
+    itemRender :: M.Maybe (S.Option r -> H.ComponentHTML (Query r))
   , itemWidth :: Number
   , visibleItemCount :: M.Maybe Number
   }
@@ -98,41 +97,48 @@ type RotarySelectorConfig r =
 rotarySelect
   :: forall r e
    . RotarySelectorConfig r
-  -> Component (State r) (Query r) (AffSel e)
-rotarySelect cfg = component (render cfg) (eval cfg)
+  -> H.Component (S.State r) (Query r) (AffSel e)
+rotarySelect cfg =
+  H.lifecycleComponent
+    { render: render cfg
+    , eval: eval cfg
+    , initializer: M.Just (H.action Init)
+    , finalizer: M.Nothing
+    }
 
 render
   :: forall r
    . RotarySelectorConfig r
-  -> (State r)
-  -> ComponentHTML (Query r)
+  -> (S.State r)
+  -> H.ComponentHTML (Query r)
 render cfg state =
-  H.div wrapperAttrs
-    [ H.div [ E.onMouseDown (\evt -> E.preventDefault
-                                       $> (action $ StartDragging evt.clientX))
-            , P.initializer (\el -> action $ Init el)
-            , P.classes [ draggedClass ]
-            ]
-      ( stls <> content)
+  HH.div wrapperAttrs
+    [ HH.div
+        [ HE.onMouseDown \evt ->
+            HEH.preventDefault $> (H.action $ StartDragging evt.clientX)
+        , HP.ref (H.action <<< SetElement)
+        , HP.classes [ draggedClass ]
+        ]
+        $ stls <> content
     ]
   where
   wrapperAttrs =
-    [ P.classes [ wrapperClass ] ]
+    [ HP.classes [ wrapperClass ] ]
     <> F.foldMap (dataRotaryKey >>> Arr.singleton) state.key
 
-  content :: Array (ComponentHTML (Query r))
+  content :: Array (H.ComponentHTML (Query r))
   content =
     map itemRender state.displayedItems
 
-  itemRender :: Option r -> ComponentHTML (Query r)
+  itemRender :: S.Option r -> H.ComponentHTML (Query r)
   itemRender s =
-    H.div [ P.classes [ itemClass ] ]
+    HH.div [ HP.classes [ itemClass ] ]
       $ pure
       $ case cfg.itemRender of
         M.Just fn -> fn s
-        M.Nothing -> (runOption >>> _.label >>> H.text) s
+        M.Nothing -> (S.runOption >>> _.label >>> HH.text) s
 
-  stls :: Array (ComponentHTML (Query r))
+  stls :: Array (H.ComponentHTML (Query r))
   stls =
     F.foldMap (Arr.singleton <<< CSS.stylesheet <<< mkStylesheet) state.key
 
@@ -161,8 +167,8 @@ getCurrentX
    . RotarySelectorDSL r e Number
 getCurrentX =
   M.fromMaybe zero <$> Mt.runMaybeT do
-    el <- Mt.MaybeT $ gets _.element
-    st <- liftEff $ getComputedStyle el
+    el <- Mt.MaybeT $ H.gets _.element
+    st <- H.fromEff $ getComputedStyle el
     Mt.MaybeT
       $ pure
       $ Sm.lookup "marginLeft" st
@@ -173,106 +179,109 @@ getElementOffset
    . RotarySelectorDSL r e Number
 getElementOffset =
   M.fromMaybe zero <$> Mt.runMaybeT do
-    el <- Mt.MaybeT $ gets _.element
-    rlst <- liftEff $ getClientRects el
+    el <- Mt.MaybeT $ H.gets _.element
+    rlst <- H.fromEff $ getClientRects el
     hd <- Mt.MaybeT $ pure $ Arr.head rlst
     pure hd.left
 
 setDisplayedItems
   :: forall r e
    . RotarySelectorConfig r
-  -> Cr.Circular Array (Option r)
+  -> Cr.Circular Array (S.Option r)
   -> RotarySelectorDSL r e Unit
 setDisplayedItems cfg circ = do
-  screenWidth <- liftEff $ getScreen <#> _.width
+  screenWidth <- H.fromEff $ getScreen <#> _.width
   let
     iwidth = Int.floor cfg.itemWidth
     ilen = Cr.lengthCircular circ
     itemsOnScreen = screenWidth / iwidth + one
     repeats = draggableScreens * itemsOnScreen / ilen
-  modify $ _displayedItems .~ Cr.samples repeats circ
+  H.modify $ S._displayedItems .~ Cr.samples repeats circ
 
 
 eval
   :: forall r e
    . RotarySelectorConfig r
   -> Natural (Query r) (RotarySelectorDSL r e)
-eval cfg (Init el next) = do
-  modify $ _element ?~ el
+eval cfg (SetElement el next) = do
+  H.modify (S._element .~ el)
+  pure next
+eval cfg (Init next) = do
   key <- genKey
-  modify $ _key ?~ key
-  state <- get
-  setDisplayedItems cfg state.items
-  docTarget <-
-    liftEff
-    $ window
-    >>= Win.document
-    <#> Ht.htmlDocumentToEventTarget
-  offset <- getElementOffset
-  let
-    evntify :: forall a. a -> { clientX :: Number, clientY :: Number }
-    evntify = Unsafe.Coerce.unsafeCoerce
-    attachMouseUp f =
-      Etr.addEventListener Etp.mouseup (Etr.eventListener f) false docTarget
-    attachMouseMove f =
-      Etr.addEventListener Etp.mousemove (Etr.eventListener f) false docTarget
-    attachAnimated f =
-      Etr.addEventListener Etp.animationend (Etr.eventListener f) false
-      $ Ht.htmlElementToEventTarget el
-    handleMouseUp e =
-      pure $ action $ StopDragging
-    handleMouseMove e =
-      pure $ action $ ChangePosition (evntify e).clientX
-    handleAnimated e =
-      pure $ action $ Animated
-  subscribe $ eventSource attachMouseUp handleMouseUp
-  subscribe $ eventSource attachMouseMove handleMouseMove
-  subscribe $ eventSource attachAnimated handleAnimated
-
-
-  screenWidth <- liftEff $ getScreen <#> _.width
-  modify $ _constStyles .~ do
-    let visibleCount = M.fromMaybe 2.0 cfg.visibleItemCount
-    (wrapperSelector key) ? do
-      width $ px $ visibleCount * cfg.itemWidth
-      overflow hidden
-      position relative
-    (draggedSelector key) ? do
+  H.modify $ S._key ?~ key
+  state <- H.get
+  case state.element of
+    M.Nothing -> pure unit
+    M.Just el -> do
+      setDisplayedItems cfg state.items
+      docTarget <-
+        H.fromEff
+        $ window
+        >>= Win.document
+        <#> Ht.htmlDocumentToEventTarget
+      offset <- getElementOffset
       let
-        iwidth = Int.floor cfg.itemWidth
-        ilen = Cr.lengthCircular state.items
-        itemsOnScreen =
-          screenWidth / iwidth + one
-        draggedWidth =
-          cfg.itemWidth * Int.toNumber (itemsOnScreen * draggableScreens)
-        itemsOnLeftSideCount =
-          draggableScreens * (itemsOnScreen / 2 / ilen + one)
-        halfWidth =
-          cfg.itemWidth * Int.toNumber (ilen * itemsOnLeftSideCount)
-        leftPosition =
-          (visibleCount - one) / 2.0 * cfg.itemWidth - halfWidth
-      position relative
-      left $ px leftPosition
-      marginLeft $ px 0.0
-      width $ px $ draggedWidth
-    (itemSelector key) ? do
-      width $ px cfg.itemWidth
-      display inlineBlock
-      textAlign center
+        evntify :: forall a. a -> { clientX :: Number, clientY :: Number }
+        evntify = Unsafe.Coerce.unsafeCoerce
+        attachMouseUp f =
+          Etr.addEventListener Etp.mouseup (Etr.eventListener f) false docTarget
+        attachMouseMove f =
+          Etr.addEventListener Etp.mousemove (Etr.eventListener f) false docTarget
+        attachAnimated f =
+          Etr.addEventListener Etp.animationend (Etr.eventListener f) false
+          $ Ht.htmlElementToEventTarget el
+        handleMouseUp e =
+          pure $ H.action $ StopDragging
+        handleMouseMove e =
+          pure $ H.action $ ChangePosition (evntify e).clientX
+        handleAnimated e =
+          pure $ H.action $ Animated
+      H.subscribe $ H.eventSource attachMouseUp handleMouseUp
+      H.subscribe $ H.eventSource attachMouseMove handleMouseMove
+      H.subscribe $ H.eventSource attachAnimated handleAnimated
+      screenWidth <- H.fromEff $ getScreen <#> _.width
+      H.modify $ S._constStyles .~ do
+        let visibleCount = M.fromMaybe 2.0 cfg.visibleItemCount
+        (wrapperSelector key) ? do
+          width $ px $ visibleCount * cfg.itemWidth
+          overflow hidden
+          position relative
+        (draggedSelector key) ? do
+          let
+            iwidth = Int.floor cfg.itemWidth
+            ilen = Cr.lengthCircular state.items
+            itemsOnScreen =
+              screenWidth / iwidth + one
+            draggedWidth =
+              cfg.itemWidth * Int.toNumber (itemsOnScreen * draggableScreens)
+            itemsOnLeftSideCount =
+              draggableScreens * (itemsOnScreen / 2 / ilen + one)
+            halfWidth =
+              cfg.itemWidth * Int.toNumber (ilen * itemsOnLeftSideCount)
+            leftPosition =
+              (visibleCount - one) / 2.0 * cfg.itemWidth - halfWidth
+          position relative
+          left $ px leftPosition
+          marginLeft $ px 0.0
+          width $ px $ draggedWidth
+        (itemSelector key) ? do
+          width $ px cfg.itemWidth
+          display inlineBlock
+          textAlign center
   pure next
 eval cfg (StartDragging startedAt next) = do
   mL <- getCurrentX
   offset <- getElementOffset
-  modify $ _visualState .~ (Dragging $ startedAt - mL)
-  modify $ _position .~ startedAt
-  modify updateStyles
+  H.modify $ S._visualState .~ (S.Dragging $ startedAt - mL)
+  H.modify $ S._position .~ startedAt
+  H.modify S.updateStyles
   pure next
 eval cfg (StopDragging next) = do
-  visualState <- gets _.visualState
+  visualState <- H.gets _.visualState
   case visualState of
-    Dragging startedAt -> do
+    S.Dragging startedAt -> do
       mL <- getCurrentX
-      position <- gets _.position
+      position <- H.gets _.position
       let
         diff = position - startedAt
         pos =
@@ -282,36 +291,36 @@ eval cfg (StopDragging next) = do
         finalMargin =
           Int.toNumber (pos / Int.floor cfg.itemWidth)  * cfg.itemWidth
 
-      modify $ _visualState .~ Animating mL finalMargin
-      modify updateStyles
+      H.modify $ S._visualState .~ S.Animating mL finalMargin
+      H.modify S.updateStyles
     _ -> pure unit
   pure next
 eval cfg (ChangePosition pos next) = do
-  dragged <- gets isDragged
+  dragged <- H.gets S.isDragged
   when dragged do
-    modify $ _position .~ pos
-    modify updateStyles
+    H.modify $ S._position .~ pos
+    H.modify S.updateStyles
   pure next
 eval cfg (Animated next) = do
-  state <- get
-  modify $ _visualState .~ Staying
+  state <- H.get
+  H.modify $ S._visualState .~ S.Staying
   curX <- getCurrentX
-  modify $ _position .~ curX
+  H.modify $ S._position .~ curX
   let
     items =
       Cr.shift (-1 * (Int.floor (curX / cfg.itemWidth))) state.items
   setDisplayedItems cfg items
-  modify $ _items .~ items
-  modify $ _position .~ zero
-  modify updateStyles
-  subscribe
+  H.modify $ S._items .~ items
+  H.modify $ S._position .~ zero
+  H.modify S.updateStyles
+  H.subscribe
     $ EventSource
     $ SCR.producerToStallingProducer
     $ produce \emit -> do
-      emit $ E.Left $ action $ Selected $ Cr.pointed items
+      emit $ E.Left $ H.action $ Selected $ Cr.pointed items
       emit $ E.Right unit
   pure next
 eval cfg (GetSelected continue) = do
-  state <- get
+  state <- H.get
   pure $ continue $ Cr.pointed state.items
 eval cfg (Selected _ next) = pure next

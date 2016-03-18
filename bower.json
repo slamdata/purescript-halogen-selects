@@ -14,24 +14,25 @@
     "type": "git",
     "url": "git://github.com/slamdata/purescript-halogen-selects"
   },
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "ignore": [
     "**/.*",
-    "node_modules",
     "bower_components",
-    "output"
+    "node_modules",
+    "output",
+    "test",
+    "bower.json",
+    "package.json"
   ],
   "dependencies": {
+    "purescript-aff-free": "^0.1.2",
     "purescript-css": "^0.6.0",
-    "purescript-halogen-css": "^0.2.2",
-    "purescript-halogen": "^0.5.16",
     "purescript-either": "^0.2.3",
+    "purescript-halogen": "^0.6.1",
+    "purescript-halogen-bootstrap": "^0.5.0",
+    "purescript-halogen-css": "^0.3.0",
     "purescript-profunctor-lenses": "^0.4.2",
     "purescript-random": "^0.2.3",
-    "purescript-sets": "^0.5.7",
-    "purescript-halogen-bootstrap": "^0.4.0"
-  },
-  "resolutions": {
-    "purescript-css": "^0.6.0"
+    "purescript-sets": "^0.5.7"
   }
 }
