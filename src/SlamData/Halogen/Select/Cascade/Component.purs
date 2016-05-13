@@ -2,7 +2,7 @@ module SlamData.Halogen.Select.Cascade.Component
   (
     cascadeSelect
   , Query(..)
-  , State()
+  , State
   , Option(..)
   , SelectKey(..)
   , initialState
@@ -10,21 +10,21 @@ module SlamData.Halogen.Select.Cascade.Component
 
 import Prelude
 
-import Control.Monad.Aff (Aff())
+import Control.Monad.Aff (Aff)
 import Control.MonadPlus (guard)
 
 import Data.Foldable as F
 import Data.Functor (($>))
-import Data.Lens (LensP(), lens, (%~))
+import Data.Lens (LensP, lens, (%~))
 import Data.List as L
 import Data.Map as Map
 import Data.Maybe as M
-import Data.NaturalTransformation (Natural())
+import Data.NaturalTransformation (Natural)
 import Data.Set as Set
 import Data.Tuple as Tpl
 
 import Halogen as H
-import Halogen.HTML.Core (className, ClassName())
+import Halogen.HTML.Core (className, ClassName)
 import Halogen.HTML.Events.Indexed as HE
 import Halogen.HTML.Indexed as HH
 import Halogen.HTML.Properties.Indexed as HP

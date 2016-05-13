@@ -3,15 +3,15 @@ module SlamData.Halogen.Select.Rotary.Component.State where
 import Prelude
 
 import Data.Maybe as M
-import Data.Lens (LensP(), lens)
-import Data.NonEmpty (NonEmpty())
+import Data.Lens (LensP, lens)
+import Data.NonEmpty (NonEmpty)
 import Data.Circular as Cr
 
 import DOM.HTML.Types as Ht
 
 import CSS.Geometry (marginLeft)
 import CSS.Size (px)
-import CSS.Stylesheet (CSS(), keyframesFromTo)
+import CSS.Stylesheet (CSS, keyframesFromTo)
 import CSS.Animation (animation, iterationCount, normalAnimationDirection, forwards)
 import CSS.Time (sec)
 import CSS.Transition (easeOut)

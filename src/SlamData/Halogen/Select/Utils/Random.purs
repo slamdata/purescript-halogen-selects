@@ -2,10 +2,10 @@ module SlamData.Halogen.Select.Utils.Random where
 
 import Prelude
 
-import Control.Monad.Aff.Free (Affable, fromEff)
-import Control.Monad.Eff.Random (random, RANDOM())
+import Control.Monad.Aff.Free (class Affable, fromEff)
+import Control.Monad.Eff.Random (random, RANDOM)
 
-import Data.Date (nowEpochMilliseconds, Now())
+import Data.Date (nowEpochMilliseconds, Now)
 import Data.String.Regex as Rgx
 import Data.Time (Milliseconds(..))
 
