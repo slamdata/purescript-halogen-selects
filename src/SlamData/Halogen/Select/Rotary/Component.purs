@@ -1,7 +1,7 @@
 module SlamData.Halogen.Select.Rotary.Component
   (
     rotarySelect
-  , RotarySelectorConfig()
+  , RotarySelectorConfig
   , module S
   , module SlamData.Halogen.Select.Rotary.Component.Query
   ) where
@@ -9,46 +9,46 @@ module SlamData.Halogen.Select.Rotary.Component
 import Prelude
 
 import Control.Monad (when)
-import Control.Monad.Aff (Aff())
-import Control.Monad.Aff.AVar (AVAR())
-import Control.Monad.Eff.Random (RANDOM())
+import Control.Monad.Aff (Aff)
+import Control.Monad.Aff.AVar (AVAR)
+import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Maybe.Trans as Mt
 import Control.Coroutine.Aff (produce)
 import Control.Coroutine.Stalling as SCR
 
 import Data.Array as Arr
 import Data.Circular as Cr
-import Data.Date (Now())
+import Data.Date (Now)
 import Data.Either as E
 import Data.Foldable as F
 import Data.Functor (($>))
 import Data.Int as Int
 import Data.Lens ((.~), (?~))
 import Data.Maybe as M
-import Data.NaturalTransformation (Natural())
+import Data.NaturalTransformation (Natural)
 import Data.StrMap as Sm
 
 import CSS.Display (display, inlineBlock, position, relative)
 import CSS.Geometry (width, left, marginLeft)
 import CSS.Overflow (overflow, hidden)
 import CSS.Selector
-  (Selector(), Predicate(AttrVal), Refinement(..), (**), (##))
+  (Selector, Predicate(AttrVal), Refinement(..), (**), (##))
 import CSS.Size (px)
 import CSS.String (fromString)
-import CSS.Stylesheet (CSS(), (?))
+import CSS.Stylesheet (CSS, (?))
 import CSS.TextAlign (textAlign, center)
 
 import Halogen as H
-import Halogen.HTML.Core (Prop(..), attrName, className, ClassName())
+import Halogen.HTML.Core (Prop(..), attrName, className, ClassName)
 import Halogen.HTML.Indexed as HH
 import Halogen.HTML.Events.Indexed as HE
 import Halogen.HTML.Events.Handler as HEH
 import Halogen.HTML.Properties.Indexed as HP
 import Halogen.HTML.CSS as CSS
-import Halogen.HTML.Properties.Indexed (IProp())
+import Halogen.HTML.Properties.Indexed (IProp)
 import Halogen.Query.EventSource (EventSource(..))
 
-import DOM (DOM())
+import DOM (DOM)
 import DOM.HTML (window)
 import DOM.HTML.Window as Win
 import DOM.HTML.Types as Ht
@@ -115,7 +115,7 @@ render cfg state =
   HH.div wrapperAttrs
     [ HH.div
         [ HE.onMouseDown \evt ->
-            HEH.preventDefault $> (H.action $ StartDragging evt.clientX)
+            HEH.preventDefault $> M.Just (H.action $ StartDragging evt.clientX)
         , HP.ref (H.action <<< SetElement)
         , HP.classes [ draggedClass ]
         ]

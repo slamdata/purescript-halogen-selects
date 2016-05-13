@@ -3,7 +3,7 @@ module Data.Circular where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Alternative (Alternative)
+import Control.Alternative (class Alternative)
 import Control.MonadPlus (guard)
 
 import Data.NonEmpty as Ne

@@ -2,12 +2,12 @@ module SlamData.Halogen.Select.Utils.DOM where
 
 import Prelude
 
-import Control.Monad.Eff (Eff())
+import Control.Monad.Eff (Eff)
 
 import Data.StrMap as Sm
 
-import DOM (DOM())
-import DOM.HTML.Types (HTMLElement())
+import DOM (DOM)
+import DOM.HTML.Types (HTMLElement)
 
 type Screen =
   {
