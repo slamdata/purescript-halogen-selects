@@ -248,16 +248,18 @@ eval cfg (Init next) = do
           position relative
         (draggedSelector key) ? do
           let
-            iwidth = Int.floor cfg.itemWidth
-            ilen = Cr.lengthCircular state.items
+            iwidth =
+              Int.floor cfg.itemWidth
+            ilen =
+              Cr.lengthCircular state.items
             itemsOnScreen =
               screenWidth / iwidth + one
             draggedWidth =
               cfg.itemWidth * Int.toNumber (itemsOnScreen * draggableScreens)
             itemsOnLeftSideCount =
-              draggableScreens * (itemsOnScreen / 2 / ilen + one)
+              draggableScreens * (itemsOnScreen / 2 / ilen)
             halfWidth =
-              cfg.itemWidth * Int.toNumber (ilen * itemsOnLeftSideCount)
+              cfg.itemWidth * Int.toNumber itemsOnLeftSideCount
             leftPosition =
               (visibleCount - one) / 2.0 * cfg.itemWidth - halfWidth
           position relative
